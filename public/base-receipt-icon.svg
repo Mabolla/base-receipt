@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Base Receipt</title>
+  <desc id="desc">A blue receipt mark on a dark background.</desc>
+  <rect width="512" height="512" rx="112" fill="#080b12"/>
+  <path d="M144 104h224v304l-40-24-36 24-36-24-36 24-36-24-40 24V104Z" fill="#315efb"/>
+  <path d="M196 188h120M196 244h120M196 300h76" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+</svg>
