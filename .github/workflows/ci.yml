@@ -16,6 +16,9 @@ jobs:
       - run: npm install
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm test
+        env:
+          PAYMENT_REQUEST_SECRET: ci-only-secret-not-used-for-real-payments
       - run: npm run build
         env:
           PAYMENT_REQUEST_SECRET: ci-only-secret-not-used-for-real-payments
