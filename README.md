@@ -1,8 +1,19 @@
 # Base Receipt
 
-A small, production-minded **Base Mainnet** payment receipt app built around Base Pay.
+A production-minded **Base Mainnet** USDC payment receipt app built around Base Pay.
 
-Base Receipt creates a short-lived signed USDC payment request, opens Base Pay, verifies the resulting transaction on the server, and only then issues a receipt.
+**Live app:** https://base-receipt-jf11ddnlm-mabolla1.vercel.app/
+
+Base Receipt creates a short-lived signed USDC payment request, opens Base Pay, independently verifies the resulting settlement on the server, and only then issues a receipt.
+
+## Mainnet proof
+
+The full production flow has been exercised with a real **0.01 USDC** Base Mainnet payment.
+
+- BaseScan: https://basescan.org/tx/0x033a3e2f145db2f16601f59264286d959701e87f96962d3af21a2898484ec5ec
+- Result: successful Base Mainnet USDC transfer
+- Application result: `Verified on Base. Receipt issued.`
+- Durable receipt claim: persisted in PostgreSQL
 
 ## Why this exists
 
@@ -22,14 +33,14 @@ Base Receipt checks:
 3. The browser calls Base Pay on **Base Mainnet**.
 4. The browser sends only the transaction hash and signed request to `/api/verify`.
 5. The server calls `getPaymentStatus()` and checks the verified amount and recipient.
-6. The payment ID is atomically claimed and a receipt is returned.
-7. The receipt links to the BaseScan transaction.
+6. The payment ID is atomically claimed and persisted.
+7. A verified receipt is returned with a BaseScan transaction link.
 
 ## Replay protection
 
 For local development, claims are kept in process memory.
 
-For production, set `DATABASE_URL` to any PostgreSQL database. Base Receipt creates a `base_receipt_payments` table with the payment transaction hash as its primary key, so concurrent or repeated claims cannot reuse one payment for multiple orders.
+For production, set `DATABASE_URL` to a PostgreSQL database. Base Receipt creates a `base_receipt_payments` table with the payment transaction hash as its primary key, so concurrent or repeated claims cannot reuse one payment for multiple orders.
 
 ## Environment
 
@@ -49,7 +60,7 @@ npm install
 npm run dev
 ```
 
-Quality gates used in CI:
+Quality gates:
 
 ```bash
 npm run lint
@@ -64,14 +75,14 @@ The app intentionally uses `testnet: false`. Payments are real Base Mainnet USDC
 
 ## Base App and Builder Codes
 
-Base Receipt is a standard web app. Once it has a live primary URL, it can be registered as a project on Base.dev. Base App traffic receives automatic Builder Code attribution after registration. External-web attribution will be added only through a supported ERC-8021 transaction path rather than faking attribution around Base Pay.
+Base Receipt is a standard web app. It can be registered as a project on Base.dev using its live production URL. Base App traffic can receive Builder Code attribution after registration. External-web attribution should only be added through a supported ERC-8021 transaction path rather than faking attribution around Base Pay.
 
 ## Status
 
-- Base Pay Mainnet flow: implemented
-- Signed short-lived payment requests: implemented
-- Server-side settlement verification: implemented
-- Atomic Postgres replay protection: implemented
-- Unit tests + lint + typecheck + production build CI: in progress
-- Live deployment: pending
-- Base.dev project registration / Builder Code: pending live URL
+- Base Pay Mainnet flow: **verified in production**
+- Signed short-lived payment requests: **implemented**
+- Server-side settlement verification: **verified in production**
+- Atomic PostgreSQL replay protection: **verified with durable persistence**
+- Mainnet receipt + BaseScan explorer link: **verified in production**
+- Live deployment: **online**
+- Base.dev project registration / Builder Code: **next**
