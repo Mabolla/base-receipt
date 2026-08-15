@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getPaymentStatus } from "@base-org/account";
 import { getAddress } from "viem";
 import { readOrderToken } from "@/lib/order-token";
-import { hasPaymentBeenUsed, markPaymentUsed } from "@/lib/receipt-store";
+import { claimPayment } from "@/lib/receipt-store";
 
 type VerifyBody = { paymentId?: string; orderToken?: string };
 
@@ -11,10 +11,6 @@ export async function POST(request: Request) {
     const body = (await request.json()) as VerifyBody;
     if (!body.paymentId || !/^0x[0-9a-fA-F]{64}$/.test(body.paymentId) || !body.orderToken) {
       return NextResponse.json({ error: "Invalid verification request" }, { status: 400 });
-    }
-
-    if (hasPaymentBeenUsed(body.paymentId)) {
-      return NextResponse.json({ error: "This payment already has a receipt" }, { status: 409 });
     }
 
     const order = readOrderToken(body.orderToken);
@@ -32,18 +28,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Payment recipient does not match the request" }, { status: 409 });
     }
 
-    markPaymentUsed(body.paymentId);
-
-    return NextResponse.json({
-      receipt: {
-        orderId: order.orderId,
-        paymentId: payment.id,
-        sender: payment.sender ? getAddress(payment.sender) : null,
-        amount: payment.amount,
-        recipient: getAddress(payment.recipient),
-        status: payment.status,
-      },
+    const claimed = await claimPayment({
+      orderId: order.orderId,
+      paymentId: payment.id,
+      sender: payment.sender ? getAddress(payment.sender) : null,
+      amount: payment.amount,
+      recipient: getAddress(payment.recipient),
+      status: "completed",
     });
+
+    if (!claimed.created && claimed.receipt.orderId !== order.orderId) {
+      return NextResponse.json({ error: "This payment was already used for another request" }, { status: 409 });
+    }
+
+    return NextResponse.json({ receipt: claimed.receipt });
   } catch (error) {
     console.error("Base Pay verification failed", error);
     const message = error instanceof Error && /payment request/i.test(error.message) ? error.message : "Unable to verify payment";
