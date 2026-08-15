@@ -13,6 +13,7 @@
   "dependencies": {
     "@base-org/account": "latest",
     "next": "latest",
+    "postgres": "latest",
     "react": "latest",
     "react-dom": "latest",
     "viem": "latest"
