@@ -7,7 +7,7 @@ type Receipt = { orderId: string; paymentId: string; sender: string | null; amou
 type OrderResponse = { order: { orderId: string; amount: string; recipient: string }; token: string; error?: string };
 
 export default function Home() {
-  const [amount, setAmount] = useState("1.00");
+  const [amount, setAmount] = useState("0.01");
   const [recipient, setRecipient] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Ready to create a verified Base Mainnet payment receipt.");
@@ -58,6 +58,7 @@ export default function Home() {
       </section>
 
       <section className="card">
+        <p className="networkWarning"><strong>Real Base Mainnet payment.</strong> Use a small amount while testing.</p>
         <form onSubmit={handlePay}>
           <label>Amount (USDC)<input required inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
           <label>Recipient<input required placeholder="0x…" value={recipient} onChange={(e) => setRecipient(e.target.value.trim())} /></label>
@@ -77,6 +78,7 @@ export default function Home() {
             <div><dt>Payment ID</dt><dd><code>{receipt.paymentId}</code></dd></div>
             <div><dt>Order ID</dt><dd><code>{receipt.orderId}</code></dd></div>
           </dl>
+          <a className="explorerLink" href={`https://basescan.org/tx/${receipt.paymentId}`} target="_blank" rel="noreferrer">View verified transaction on BaseScan ↗</a>
         </section>
       )}
     </main>
