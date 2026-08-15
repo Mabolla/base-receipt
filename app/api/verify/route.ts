@@ -1,49 +1,52 @@
 import { NextResponse } from "next/server";
 import { getPaymentStatus } from "@base-org/account";
-import { getAddress, isAddress } from "viem";
+import { getAddress } from "viem";
+import { readOrderToken } from "@/lib/order-token";
 import { hasPaymentBeenUsed, markPaymentUsed } from "@/lib/receipt-store";
 
-type VerifyBody = {
-  orderId?: string;
-  paymentId?: string;
-  amount?: string;
-  recipient?: string;
-};
+type VerifyBody = { paymentId?: string; orderToken?: string };
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as VerifyBody;
-    const { orderId, paymentId, amount, recipient } = body;
-
-    if (!orderId || !paymentId || !amount || !recipient || !isAddress(recipient)) {
+    if (!body.paymentId || !/^0x[0-9a-fA-F]{64}$/.test(body.paymentId) || !body.orderToken) {
       return NextResponse.json({ error: "Invalid verification request" }, { status: 400 });
     }
 
-    if (hasPaymentBeenUsed(paymentId)) {
+    if (hasPaymentBeenUsed(body.paymentId)) {
       return NextResponse.json({ error: "This payment already has a receipt" }, { status: 409 });
     }
 
-    const status = await getPaymentStatus({ id: paymentId, testnet: false });
+    const order = readOrderToken(body.orderToken);
+    const payment = await getPaymentStatus({ id: body.paymentId, testnet: false });
 
-    if (status.status !== "completed") {
-      return NextResponse.json({ error: `Payment is ${status.status}` }, { status: 409 });
+    if (payment.status !== "completed") {
+      return NextResponse.json({ error: `Payment is ${payment.status}` }, { status: 409 });
     }
 
-    // Base Pay is the source of truth for completion. The order fields below are
-    // retained in the receipt so the server, not the UI, controls receipt issuance.
-    markPaymentUsed(paymentId);
+    if (!payment.amount || payment.amount !== order.amount) {
+      return NextResponse.json({ error: "Payment amount does not match the request" }, { status: 409 });
+    }
+
+    if (!payment.recipient || getAddress(payment.recipient) !== getAddress(order.recipient)) {
+      return NextResponse.json({ error: "Payment recipient does not match the request" }, { status: 409 });
+    }
+
+    markPaymentUsed(body.paymentId);
 
     return NextResponse.json({
       receipt: {
-        orderId,
-        paymentId,
-        amount,
-        recipient: getAddress(recipient),
-        status: "completed",
+        orderId: order.orderId,
+        paymentId: payment.id,
+        sender: payment.sender ? getAddress(payment.sender) : null,
+        amount: payment.amount,
+        recipient: getAddress(payment.recipient),
+        status: payment.status,
       },
     });
   } catch (error) {
     console.error("Base Pay verification failed", error);
-    return NextResponse.json({ error: "Unable to verify payment" }, { status: 502 });
+    const message = error instanceof Error && /payment request/i.test(error.message) ? error.message : "Unable to verify payment";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
