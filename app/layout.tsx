@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Base Receipt",
   description: "Verified USDC payment receipts on Base Mainnet.",
   applicationName: "Base Receipt",
+  other: {
+    "base:app_id": "6a81dcd6e4a8a41598e7a4ab",
+  },
   icons: {
     icon: "/base-receipt-icon.svg",
     apple: "/base-receipt-icon.svg",
