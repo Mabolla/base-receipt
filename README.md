@@ -75,7 +75,7 @@ The app intentionally uses `testnet: false`. Payments are real Base Mainnet USDC
 
 ## Base App and Builder Codes
 
-Base Receipt is a standard web app. It can be registered as a project on Base.dev using its live production URL. Base App traffic can receive Builder Code attribution after registration. External-web attribution should only be added through a supported ERC-8021 transaction path rather than faking attribution around Base Pay.
+Base Receipt is registered and domain-verified in Base Dashboard with Builder Code `bc_87fjmj1l`. Base App traffic can receive automatic Builder Code attribution. External-web attribution will only be added through a supported ERC-8021 transaction path rather than faking attribution around Base Pay.
 
 ## Status
 
@@ -85,4 +85,7 @@ Base Receipt is a standard web app. It can be registered as a project on Base.de
 - Atomic PostgreSQL replay protection: **verified with durable persistence**
 - Mainnet receipt + BaseScan explorer link: **verified in production**
 - Live deployment: **online**
-- Base.dev project registration / Builder Code: **next**
+- Base Dashboard registration and domain verification: **completed**
+- Builder Code: `bc_87fjmj1l`
+- Base Weekly Leaderboards visibility: **enabled**
+- External-web ERC-8021 attribution: **pending a supported Base Pay transaction path**
