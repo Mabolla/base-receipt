@@ -1,17 +1,19 @@
 # Base Receipt
 
-A production-minded **Base Mainnet** USDC payment receipt app built around Base Pay.
+A production-minded **Base Mainnet** USDC payment receipt app built with Base Account.
 
-**Live app:** https://base-receipt-jf11ddnlm-mabolla1.vercel.app/
+**Live app:** https://base-receipt-six.vercel.app/
 
-Base Receipt creates a short-lived signed USDC payment request, opens Base Pay, independently verifies the resulting settlement on the server, and only then issues a receipt.
+Base Receipt creates a short-lived signed USDC payment request, opens Base Account, independently verifies the resulting settlement on the server, and only then issues a receipt.
 
 ## Mainnet proof
 
-The full production flow has been exercised with a real **0.01 USDC** Base Mainnet payment.
+The full production flow and ERC-8021 attribution have been exercised with a real **0.01 USDC** Base Mainnet payment.
 
-- BaseScan: https://basescan.org/tx/0x033a3e2f145db2f16601f59264286d959701e87f96962d3af21a2898484ec5ec
+- AA transaction: https://basescan.org/tx/0xda7f75bbc0467b52ada78c871d257a18dfcfef09ee9bfd47ed43202652ea408a
+- Bundle transaction: https://basescan.org/tx/0xe95a4408c1972e60655d98157ee28b8544c2a5ecdb379d6015c910ea97b086ea
 - Result: successful Base Mainnet USDC transfer
+- ERC-8021 result: bundle calldata contains Builder Code `bc_87fjmj1l`
 - Application result: `Verified on Base. Receipt issued.`
 - Durable receipt claim: persisted in PostgreSQL
 
@@ -30,7 +32,7 @@ Base Receipt checks:
 
 1. The browser submits an amount and recipient to `/api/orders`.
 2. The server validates them and returns a 15-minute HMAC-signed payment request.
-3. The browser calls Base Pay on **Base Mainnet**.
+3. The browser sends an attributed Base Account call on **Base Mainnet**.
 4. The browser sends only the transaction hash and signed request to `/api/verify`.
 5. The server calls `getPaymentStatus()` and checks the verified amount and recipient.
 6. The payment ID is atomically claimed and persisted.
@@ -75,11 +77,11 @@ The app intentionally uses `testnet: false`. Payments are real Base Mainnet USDC
 
 ## Base App and Builder Codes
 
-Base Receipt is registered and domain-verified in Base Dashboard with Builder Code `bc_87fjmj1l`. Base App traffic can receive automatic Builder Code attribution. External-web attribution will only be added through a supported ERC-8021 transaction path rather than faking attribution around Base Pay.
+Base Receipt is registered and domain-verified in Base Dashboard with Builder Code `bc_87fjmj1l`. The external-web payment call appends the ERC-8021 suffix directly to the USDC transfer calldata, while receipt verification remains independent of attribution.
 
 ## Status
 
-- Base Pay Mainnet flow: **verified in production**
+- Base Account Mainnet flow: **verified in production**
 - Signed short-lived payment requests: **implemented**
 - Server-side settlement verification: **verified in production**
 - Atomic PostgreSQL replay protection: **verified with durable persistence**
@@ -88,4 +90,4 @@ Base Receipt is registered and domain-verified in Base Dashboard with Builder Co
 - Base Dashboard registration and domain verification: **completed**
 - Builder Code: `bc_87fjmj1l`
 - Base Weekly Leaderboards visibility: **enabled**
-- External-web ERC-8021 attribution: **pending a supported Base Pay transaction path**
+- External-web ERC-8021 attribution: **verified on Base Mainnet**
