@@ -17,7 +17,7 @@
     "react": "latest",
     "react-dom": "latest",
     "viem": "latest",
-    "ox": "latest"
+    "ox": "1.7.4"
   },
   "devDependencies": {
     "@types/node": "latest",
