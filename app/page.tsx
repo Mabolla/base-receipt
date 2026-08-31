@@ -1,13 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { pay } from "@base-org/account";
-import { Attribution } from "ox/erc8021";
+import { payAttributed } from "@/lib/base-payment";
 
 type Receipt = { orderId: string; paymentId: string; sender: string | null; amount: string; recipient: string; status: string };
 type OrderResponse = { order: { orderId: string; amount: string; recipient: string }; token: string; error?: string };
-
-const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_87fjmj1l"] });
 
 export default function Home() {
   const [amount, setAmount] = useState("0.01");
@@ -32,12 +29,7 @@ export default function Home() {
       if (!orderResponse.ok) throw new Error(request.error ?? "Unable to create payment request");
 
       setMessage("Opening Base Pay…");
-      const payment = await pay({
-        amount: request.order.amount,
-        to: request.order.recipient,
-        dataSuffix: DATA_SUFFIX,
-        testnet: false,
-      });
+      const payment = await payAttributed(request.order.amount, request.order.recipient);
 
       setMessage("Payment submitted. Verifying amount and recipient server-side…");
       const verifyResponse = await fetch("/api/verify", {
