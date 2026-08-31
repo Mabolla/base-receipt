@@ -16,7 +16,8 @@
     "postgres": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "viem": "latest"
+    "viem": "latest",
+    "ox": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
