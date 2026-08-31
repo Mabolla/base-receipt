@@ -1,10 +1,10 @@
 # Base Receipt
 
-A production-minded **Base Mainnet** USDC payment receipt app built with Base Account.
+A production-minded **Base Mainnet** USDC payment receipt app using an injected EVM wallet.
 
 **Live app:** https://base-receipt-six.vercel.app/
 
-Base Receipt creates a short-lived signed USDC payment request, opens Base Account, independently verifies the resulting settlement on the server, and only then issues a receipt.
+Base Receipt creates a short-lived signed USDC payment request, opens MetaMask (or another injected wallet), independently verifies the resulting settlement on the server, and only then issues a receipt.
 
 ## Mainnet proof
 
@@ -32,7 +32,7 @@ Base Receipt checks:
 
 1. The browser submits an amount and recipient to `/api/orders`.
 2. The server validates them and returns a 15-minute HMAC-signed payment request.
-3. The browser sends an attributed Base Account call on **Base Mainnet**.
+3. The browser sends a directly attributed USDC call through MetaMask on **Base Mainnet**.
 4. The browser sends only the transaction hash and signed request to `/api/verify`.
 5. The server calls `getPaymentStatus()` and checks the verified amount and recipient.
 6. The payment ID is atomically claimed and persisted.
@@ -81,7 +81,7 @@ Base Receipt is registered and domain-verified in Base Dashboard with Builder Co
 
 ## Status
 
-- Base Account Mainnet flow: **verified in production**
+- Direct-wallet Mainnet flow: **implemented and locally verified**
 - Signed short-lived payment requests: **implemented**
 - Server-side settlement verification: **verified in production**
 - Atomic PostgreSQL replay protection: **verified with durable persistence**

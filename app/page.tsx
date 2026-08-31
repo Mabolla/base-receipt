@@ -28,7 +28,7 @@ export default function Home() {
       const request = (await orderResponse.json()) as OrderResponse;
       if (!orderResponse.ok) throw new Error(request.error ?? "Unable to create payment request");
 
-      setMessage("Opening Base Pay…");
+      setMessage("Opening MetaMask on Base Mainnet…");
       const payment = await payAttributed(request.order.amount, request.order.recipient);
 
       setMessage("Payment submitted. Verifying amount and recipient server-side…");
@@ -62,7 +62,7 @@ export default function Home() {
         <form onSubmit={handlePay}>
           <label>Amount (USDC)<input required inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
           <label>Recipient<input required placeholder="0x…" value={recipient} onChange={(e) => setRecipient(e.target.value.trim())} /></label>
-          <button disabled={busy || !recipient}>{busy ? "Working…" : `Pay ${amount} USDC on Base`}</button>
+          <button disabled={busy || !recipient}>{busy ? "Working…" : `Pay ${amount} USDC with MetaMask`}</button>
         </form>
         <p className="status">{message}</p>
       </section>

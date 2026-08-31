@@ -1,6 +1,5 @@
-import { createBaseAccountSDK } from "@base-org/account";
 import { Attribution } from "ox/erc8021";
-import { concatHex, encodeFunctionData, getAddress, parseUnits, type Address, type Hex } from "viem";
+import { concatHex, encodeFunctionData, getAddress, parseUnits, type Hex } from "viem";
 
 export const BASE_CHAIN_ID = "0x2105";
 export const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -32,46 +31,53 @@ export function buildAttributedTransferData(amount: string, recipient: string): 
   return concatHex([transferData, DATA_SUFFIX]);
 }
 
-function paymentIdFromResponse(response: unknown): string {
-  const id = typeof response === "string"
-    ? response
-    : response && typeof response === "object" && "id" in response
-      ? (response as { id?: unknown }).id
-      : undefined;
+type InjectedProvider = {
+  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
+};
 
-  if (typeof id !== "string" || !/^0x[0-9a-fA-F]{64}/.test(id)) {
-    throw new Error("Base Account did not return a valid payment ID");
-  }
-
-  return id.slice(0, 66);
+function injectedProvider(): InjectedProvider {
+  const provider = (window as Window & { ethereum?: InjectedProvider }).ethereum;
+  if (!provider) throw new Error("MetaMask or another injected wallet is required");
+  return provider;
 }
 
 export async function payAttributed(amount: string, recipient: string): Promise<{ id: string }> {
-  const sdk = createBaseAccountSDK({
-    appName: "Base Receipt",
-    appChainIds: [8453],
-  });
-  const provider = sdk.getProvider();
+  const provider = injectedProvider();
   const accounts = await provider.request({ method: "eth_requestAccounts" });
   const from = Array.isArray(accounts) ? accounts[0] : undefined;
 
   if (typeof from !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(from)) {
-    throw new Error("Base Account did not return a payer address");
+    throw new Error("Wallet did not return a payer address");
   }
 
-  const response = await provider.request({
-    method: "wallet_sendCalls",
+  const chainId = await provider.request({ method: "eth_chainId" });
+  if (chainId !== BASE_CHAIN_ID) {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BASE_CHAIN_ID }],
+    });
+  }
+
+  const id = await provider.request({
+    method: "eth_sendTransaction",
     params: [{
-      version: "2.0.0",
-      chainId: BASE_CHAIN_ID,
-      from: getAddress(from) as Address,
-      calls: [{
-        to: BASE_USDC,
-        data: buildAttributedTransferData(amount, recipient),
-        value: "0x0",
-      }],
+      from: getAddress(from),
+      to: BASE_USDC,
+      data: buildAttributedTransferData(amount, recipient),
+      value: "0x0",
     }],
   });
 
-  return { id: paymentIdFromResponse(response) };
+  if (typeof id !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(id)) {
+    throw new Error("Wallet did not return a valid transaction hash");
+  }
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const receipt = await provider.request({ method: "eth_getTransactionReceipt", params: [id] });
+    if (receipt) return { id };
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+
+  throw new Error(`Transaction submitted but confirmation timed out: ${id}`);
+
 }

@@ -1,10 +1,23 @@
 import { NextResponse } from "next/server";
-import { getPaymentStatus } from "@base-org/account";
-import { getAddress } from "viem";
+import { Attribution } from "ox/erc8021";
+import { base } from "viem/chains";
+import { createPublicClient, decodeEventLog, getAddress, http, parseUnits, type Hex } from "viem";
 import { readOrderToken } from "@/lib/order-token";
 import { claimPayment } from "@/lib/receipt-store";
+import { BASE_USDC, BUILDER_CODE } from "@/lib/base-payment";
 
 type VerifyBody = { paymentId?: string; orderToken?: string };
+
+const client = createPublicClient({ chain: base, transport: http("https://mainnet.base.org") });
+const TRANSFER_EVENT = [{
+  type: "event",
+  name: "Transfer",
+  inputs: [
+    { name: "from", type: "address", indexed: true },
+    { name: "to", type: "address", indexed: true },
+    { name: "value", type: "uint256", indexed: false },
+  ],
+}] as const;
 
 export async function POST(request: Request) {
   try {
@@ -14,26 +27,48 @@ export async function POST(request: Request) {
     }
 
     const order = readOrderToken(body.orderToken);
-    const payment = await getPaymentStatus({ id: body.paymentId, testnet: false });
+    const hash = body.paymentId as Hex;
+    const [transaction, transactionReceipt] = await Promise.all([
+      client.getTransaction({ hash }),
+      client.getTransactionReceipt({ hash }),
+    ]);
 
-    if (payment.status !== "completed") {
-      return NextResponse.json({ error: `Payment is ${payment.status}` }, { status: 409 });
+    if (transactionReceipt.status !== "success" || !transaction.to || getAddress(transaction.to) !== getAddress(BASE_USDC)) {
+      return NextResponse.json({ error: "Payment transaction is not a successful USDC call" }, { status: 409 });
     }
 
-    if (!payment.amount || payment.amount !== order.amount) {
-      return NextResponse.json({ error: "Payment amount does not match the request" }, { status: 409 });
+    const attribution = Attribution.fromData(transaction.input);
+    if (!attribution?.codes?.includes(BUILDER_CODE)) {
+      return NextResponse.json({ error: "Payment is missing Base Receipt attribution" }, { status: 409 });
     }
 
-    if (!payment.recipient || getAddress(payment.recipient) !== getAddress(order.recipient)) {
-      return NextResponse.json({ error: "Payment recipient does not match the request" }, { status: 409 });
+    const expectedAmount = parseUnits(order.amount, 6);
+    const expectedRecipient = getAddress(order.recipient);
+    const transfers = transactionReceipt.logs.flatMap((log) => {
+      if (getAddress(log.address) !== getAddress(BASE_USDC)) return [];
+      try {
+        const decoded = decodeEventLog({ abi: TRANSFER_EVENT, data: log.data, topics: log.topics });
+        return decoded.eventName === "Transfer" ? [decoded.args] : [];
+      } catch {
+        return [];
+      }
+    });
+    const settled = transfers.find((transfer) =>
+      getAddress(transfer.from) === getAddress(transaction.from)
+      && getAddress(transfer.to) === expectedRecipient
+      && transfer.value === expectedAmount,
+    );
+
+    if (!settled) {
+      return NextResponse.json({ error: "Payment amount or recipient does not match the request" }, { status: 409 });
     }
 
     const claimed = await claimPayment({
       orderId: order.orderId,
-      paymentId: payment.id,
-      sender: payment.sender ? getAddress(payment.sender) : null,
-      amount: payment.amount,
-      recipient: getAddress(payment.recipient),
+      paymentId: hash,
+      sender: getAddress(transaction.from),
+      amount: order.amount,
+      recipient: expectedRecipient,
       status: "completed",
     });
 
