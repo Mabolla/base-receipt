@@ -10,10 +10,9 @@ Base Receipt creates a short-lived signed USDC payment request, opens MetaMask (
 
 The full production flow and ERC-8021 attribution have been exercised with a real **0.01 USDC** Base Mainnet payment.
 
-- AA transaction: https://basescan.org/tx/0xda7f75bbc0467b52ada78c871d257a18dfcfef09ee9bfd47ed43202652ea408a
-- Bundle transaction: https://basescan.org/tx/0xe95a4408c1972e60655d98157ee28b8544c2a5ecdb379d6015c910ea97b086ea
+- Direct transaction: https://basescan.org/tx/0xa7c0d15e190b7ab099c03013b14f07c6a58a7c15c8c1e7a8132bb7512c9e881d
 - Result: successful Base Mainnet USDC transfer
-- ERC-8021 result: bundle calldata contains Builder Code `bc_87fjmj1l`
+- ERC-8021 result: top-level transaction calldata ends with Builder Code `bc_87fjmj1l`
 - Application result: `Verified on Base. Receipt issued.`
 - Durable receipt claim: persisted in PostgreSQL
 
@@ -81,7 +80,7 @@ Base Receipt is registered and domain-verified in Base Dashboard with Builder Co
 
 ## Status
 
-- Direct-wallet Mainnet flow: **implemented and locally verified**
+- Direct-wallet Mainnet flow: **verified in production**
 - Signed short-lived payment requests: **implemented**
 - Server-side settlement verification: **verified in production**
 - Atomic PostgreSQL replay protection: **verified with durable persistence**
