@@ -32,13 +32,18 @@ export function buildAttributedTransferData(amount: string, recipient: string): 
 }
 
 type InjectedProvider = {
+  isMetaMask?: boolean;
+  isCoinbaseWallet?: boolean;
+  providers?: InjectedProvider[];
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
 };
 
 function injectedProvider(): InjectedProvider {
-  const provider = (window as Window & { ethereum?: InjectedProvider }).ethereum;
-  if (!provider) throw new Error("MetaMask or another injected wallet is required");
-  return provider;
+  const injected = (window as Window & { ethereum?: InjectedProvider }).ethereum;
+  const providers = injected?.providers ?? (injected ? [injected] : []);
+  const metamask = providers.find((provider) => provider.isMetaMask && !provider.isCoinbaseWallet);
+  if (!metamask) throw new Error("MetaMask browser extension is required");
+  return metamask;
 }
 
 export async function payAttributed(amount: string, recipient: string): Promise<{ id: string }> {
