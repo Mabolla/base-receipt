@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { payAttributed } from "@/lib/base-payment";
 
 type Receipt = { orderId: string; paymentId: string; sender: string | null; amount: string; recipient: string; status: string };
@@ -55,6 +56,7 @@ export default function Home() {
         <p className="eyebrow">BASE RECEIPT · MAINNET</p>
         <h1>Pay once. Verify it. Keep the receipt.</h1>
         <p className="lede">A focused USDC payment flow on Base. The browser initiates payment; the server independently verifies settlement, amount and recipient before issuing a receipt.</p>
+        <Link className="explorerLink" href="/agents">Integrate an agent via MCP ↗</Link>
       </section>
 
       <section className="card">

@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "@base-org/account": "latest",
+    "@modelcontextprotocol/sdk": "1.31.0",
     "next": "latest",
+    "ox": "1.7.4",
     "postgres": "latest",
     "react": "latest",
     "react-dom": "latest",
     "viem": "latest",
-    "ox": "1.7.4"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/node": "latest",
