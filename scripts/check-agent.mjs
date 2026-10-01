@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { decodeFunctionData, erc20Abi } from "viem";
+import { decodeFunctionData, erc20Abi, getAddress } from "viem";
 import { Attribution } from "ox/erc8021";
 
 const origin = process.argv[2];
-if (!origin) throw new Error("Usage: node scripts/check-agent.mjs <application-origin>");
-const recipient = process.argv[3] ?? "0x1111111111111111111111111111111111111111";
+if (!origin) throw new Error("Usage: node scripts/check-agent.mjs <application-origin> [recipient]");
+const recipient = getAddress(process.argv[3] ?? "0x1111111111111111111111111111111111111111");
 
 for (const path of ["/", "/agents", "/api/agent"]) {
   const response = await fetch(new URL(path, origin));
