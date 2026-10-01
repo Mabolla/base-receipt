@@ -33,9 +33,38 @@ Base Receipt checks:
 2. The server validates them and returns a 15-minute HMAC-signed payment request.
 3. The browser sends a directly attributed USDC call through MetaMask on **Base Mainnet**.
 4. The browser sends only the transaction hash and signed request to `/api/verify`.
-5. The server calls `getPaymentStatus()` and checks the verified amount and recipient.
+5. The server reads the Base transaction and receipt, then checks successful direct-USDC settlement, sender, amount, recipient and the Base Receipt attribution suffix.
 6. The payment ID is atomically claimed and persisted.
 7. A verified receipt is returned with a BaseScan transaction link.
+
+## Agent interface
+
+The same order and verification handlers are exposed through stateless MCP Streamable HTTP at `/mcp`. The mobile-friendly `/agents` page explains the integration; `/api/agent` publishes machine-readable capabilities.
+
+| MCP tool | Input | Result |
+| --- | --- | --- |
+| `prepare_base_payment` | Decimal USDC `amount`, EVM `recipient` | Signed 15-minute order, `orderToken`, and unsigned transaction data containing the Base Receipt Builder Code |
+| `issue_base_receipt` | Transaction hash as `paymentId`, original `orderToken` | The receipt returned by the existing settlement verifier and durable claim store, or a tool error |
+
+The service never signs or broadcasts a blockchain transaction and never receives wallet keys. An agent's caller-controlled wallet must review the amount, recipient, chain ID (8453), USDC contract and calldata before submitting a direct transfer. Both tools are marked non-read-only: preparation creates a fresh signed order; receipt issuance persists a claim. The returned order token must be kept for verification within its validity window. Repeating issuance with the same valid order preserves the existing claim; another order cannot reuse that payment.
+
+Example MCP tool arguments:
+
+```json
+{"amount":"0.01","recipient":"0xYourRecipientAddress"}
+```
+
+```json
+{"paymentId":"0xYourTransactionHash","orderToken":"token-returned-by-prepare_base_payment"}
+```
+
+Replace the placeholders with actual values. Preserve the returned attributed calldata. The current verifier supports direct EOA-to-USDC calls, not smart-account or batched calls. Preparing an order is not evidence of payment, and a receipt does not prove delivery of goods or services.
+
+No Base Receipt API key is required. The endpoint accepts POST, returns 405 for GET/DELETE, bounds request bodies to 64 KiB, and rejects foreign browser Origin headers. The server creates no long-lived MCP session. This release adds no transaction submission, paid canary or synthetic activity.
+
+The MCP transport uses the [official TypeScript SDK](https://ts.sdk.modelcontextprotocol.io/server). Tests exercise SDK discovery, exact unsigned transfer data, attribution, validation, and propagation of receipt errors. Existing browser payment handlers are reused in-process without making internal HTTP calls.
+
+Maintainers can check a running deployment with `node scripts/check-agent.mjs <application-origin>`. This performs discovery, prepares one unsigned 0.01 USDC request, validates its calldata, and confirms invalid signatures are rejected. It never submits a payment or stores a receipt, and does not print the order token.
 
 ## Replay protection
 
@@ -57,7 +86,7 @@ Never commit either value.
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -76,7 +105,7 @@ The app intentionally uses `testnet: false`. Payments are real Base Mainnet USDC
 
 ## Base App and Builder Codes
 
-Base Receipt is registered and domain-verified in Base Dashboard with Builder Code `bc_87fjmj1l`. The external-web payment call appends the ERC-8021 suffix directly to the USDC transfer calldata, while receipt verification remains independent of attribution.
+Base Receipt is registered and domain-verified in Base Dashboard with Builder Code `bc_87fjmj1l`. Browser payments and agent-prepared transactions append the ERC-8021 suffix directly to the USDC transfer calldata. The server requires this attribution alongside settlement evidence before issuing a receipt.
 
 ## Status
 
