@@ -31,23 +31,23 @@ export function buildAttributedTransferData(amount: string, recipient: string): 
   return concatHex([transferData, DATA_SUFFIX]);
 }
 
-type InjectedProvider = {
+export type InjectedProvider = {
   isMetaMask?: boolean;
   isCoinbaseWallet?: boolean;
   providers?: InjectedProvider[];
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
 };
 
-function injectedProvider(): InjectedProvider {
+export function getMetaMaskProvider(): InjectedProvider {
   const injected = (window as Window & { ethereum?: InjectedProvider }).ethereum;
   const providers = injected?.providers ?? (injected ? [injected] : []);
   const metamask = providers.find((provider) => provider.isMetaMask && !provider.isCoinbaseWallet);
-  if (!metamask) throw new Error("MetaMask browser extension is required");
+  if (!metamask) throw new Error("Open this page in your existing MetaMask mobile browser or a browser with MetaMask");
   return metamask;
 }
 
 export async function payAttributed(amount: string, recipient: string): Promise<{ id: string }> {
-  const provider = injectedProvider();
+  const provider = getMetaMaskProvider();
   const accounts = await provider.request({ method: "eth_requestAccounts" });
   const from = Array.isArray(accounts) ? accounts[0] : undefined;
 
