@@ -58,6 +58,7 @@ export function createReceiptMcpServer(handlers: ReceiptHandlers) {
       return toolResult({
         order,
         orderToken: value.token,
+        serverTime: Date.now(),
         transaction: { chainId: 8453, to: BASE_USDC, value: "0x0", data: buildAttributedTransferData(order.amount, order.recipient) },
         builderCode: BUILDER_CODE,
         submission: "requires_caller_wallet",

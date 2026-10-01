@@ -3,7 +3,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { describe, expect, it, vi } from "vitest";
 import { handleReceiptMcpRequest } from "./agent-mcp";
 import { BASE_USDC, BUILDER_CODE, buildAttributedTransferData, type InjectedProvider } from "./base-payment";
-import { issueCheckReceipt, prepareSelfCheck, submitSelfCheck, validatePrepared, type LiveCheck } from "./live-check";
+import { checkSchema, issueCheckReceipt, prepareSelfCheck, submitSelfCheck, validatePrepared, type LiveCheck } from "./live-check";
 
 const payer = "0x1111111111111111111111111111111111111111";
 const other = "0x2222222222222222222222222222222222222222";
@@ -42,6 +42,8 @@ describe("wallet-approved MCP live check", () => {
     }));
     try {
       const order = await prepareSelfCheck(client, payer);
+      expect(order.serverTime).toEqual(expect.any(Number));
+      expect(order.requestedAt).toEqual(expect.any(Number));
       const provider = wallet();
       const persist = vi.fn();
       const paymentId = await submitSelfCheck(provider, { payer, prepared: order }, persist);
@@ -102,6 +104,67 @@ describe("wallet-approved MCP live check", () => {
     const provider = wallet();
     await expect(submitSelfCheck(provider, { payer, prepared: prepared(), paymentId: hash }, vi.fn())).rejects.toThrow(/zaten/);
     expect(provider.request).not.toHaveBeenCalled();
+  });
+
+  it.each([-21_600_000, -300_000, 300_000, 21_600_000])("accepts a fresh server order with a browser clock offset of %i ms", offset => {
+    const serverTime = 1_800_000_000_000;
+    const requestedAt = serverTime + offset;
+    const value = { ...prepared(), serverTime, requestedAt,
+      order: { ...prepared().order, expiresAt: serverTime + 900_000 } };
+    expect(validatePrepared(value, payer, requestedAt + 2_000)).toEqual(value);
+  });
+
+  it("preserves clock anchors after reload and refuses to send an aged order", async () => {
+    const serverTime = Date.now() + 300_000;
+    const requestedAt = Date.now() - 841_000;
+    const saved = checkSchema.parse(JSON.parse(JSON.stringify({ payer, prepared: {
+      ...prepared(), serverTime, requestedAt, order: { ...prepared().order, expiresAt: serverTime + 900_000 },
+    } })));
+    expect(saved.prepared).toMatchObject({ serverTime, requestedAt });
+    const provider = wallet();
+    const persist = vi.fn();
+    await expect(submitSelfCheck(provider, saved, persist)).rejects.toThrow(/geçerlilik/);
+    expect(persist).not.toHaveBeenCalled();
+    expect(provider.request).not.toHaveBeenCalled();
+  });
+
+  it.each([59_999, 900_001])("rejects an invalid server-issued lifetime of %i ms", lifetime => {
+    const serverTime = 1_800_000_000_000;
+    const requestedAt = serverTime - 300_000;
+    const value = { ...prepared(), serverTime, requestedAt,
+      order: { ...prepared().order, expiresAt: serverTime + lifetime } };
+    expect(() => validatePrepared(value, payer, requestedAt + (lifetime > 900_000 ? 2_000 : 0))).toThrow(/geçerlilik/);
+  });
+
+  it("rejects a backwards clock change and incomplete clock anchors", () => {
+    const serverTime = 1_800_000_000_000;
+    const requestedAt = serverTime - 300_000;
+    const value = { ...prepared(), serverTime, requestedAt,
+      order: { ...prepared().order, expiresAt: serverTime + 900_000 } };
+    expect(() => validatePrepared(value, payer, requestedAt - 1)).toThrow(/geçerlilik/);
+    expect(() => validatePrepared({ ...value, requestedAt: undefined }, payer, requestedAt)).toThrow(/geçerlilik/);
+    expect(() => validatePrepared({ ...value, serverTime: undefined }, payer, requestedAt)).toThrow(/geçerlilik/);
+  });
+
+  it("deducts the whole MCP round trip from the server lifetime", async () => {
+    const serverTime = 1_800_000_000_000;
+    let browserTime = serverTime - 300_000;
+    const now = vi.spyOn(Date, "now").mockImplementation(() => browserTime);
+    const value = { ...prepared(), serverTime, order: { ...prepared().order, expiresAt: serverTime + 900_000 } };
+    const client = { callTool: vi.fn(async () => {
+      browserTime += 841_000;
+      return { structuredContent: value };
+    }) } as unknown as Client;
+    try {
+      await expect(prepareSelfCheck(client, payer)).rejects.toThrow(/geçerlilik/);
+    } finally { now.mockRestore(); }
+  });
+
+  it("keeps legacy saved checks readable and validates their original expiry", () => {
+    const value = prepared();
+    expect(checkSchema.parse({ payer, prepared: value, paymentId: hash })).toEqual({ payer, prepared: value, paymentId: hash });
+    expect(validatePrepared(value, payer)).toEqual(value);
+    expect(() => validatePrepared(value, payer, value.order.expiresAt)).toThrow(/geçerlilik/);
   });
 
   it("rejects a receipt for a different original order", async () => {

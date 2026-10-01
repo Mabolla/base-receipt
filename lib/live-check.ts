@@ -6,10 +6,13 @@ import { BASE_CHAIN_ID, BASE_USDC, BUILDER_CODE, buildAttributedTransferData, ty
 export const CHECK_AMOUNT = "0.01";
 export const CHECK_STORAGE_KEY = "base-receipt-mcp-check-v1";
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/);
+const timestamp = z.number().int().nonnegative();
 export const paymentHash = z.string().regex(/^0x[0-9a-fA-F]{64}$/);
 const preparedSchema = z.object({
-  order: z.object({ orderId: z.string().min(1), amount: z.literal(CHECK_AMOUNT), recipient: address, expiresAt: z.number() }),
+  order: z.object({ orderId: z.string().min(1), amount: z.literal(CHECK_AMOUNT), recipient: address, expiresAt: timestamp }),
   orderToken: z.string().min(1).max(4096),
+  serverTime: timestamp.optional(),
+  requestedAt: timestamp.optional(),
   transaction: z.object({ chainId: z.literal(8453), to: address, value: z.literal("0x0"), data: z.string().regex(/^0x[0-9a-fA-F]+$/) }),
   builderCode: z.literal(BUILDER_CODE),
   submission: z.literal("requires_caller_wallet"),
@@ -39,16 +42,26 @@ export function validatePrepared(value: unknown, payer: string, now = Date.now()
     || prepared.transaction.data.toLowerCase() !== buildAttributedTransferData(CHECK_AMOUNT, payer).toLowerCase()) {
     throw new Error("Sipariş kendi cüzdanına 0,01 USDC gönderimiyle eşleşmiyor.");
   }
-  if (prepared.order.expiresAt < now + 60_000 || prepared.order.expiresAt > now + 900_000) {
+  const { serverTime, requestedAt } = prepared;
+  const anchored = serverTime !== undefined && requestedAt !== undefined;
+  // Use the server's remaining lifetime, then deduct elapsed browser time from
+  // request start. This tolerates a fixed clock offset and includes transit time.
+  // Older saved checks keep their original validation and receipt recovery path.
+  const lifetime = prepared.order.expiresAt - (anchored ? serverTime : now);
+  const elapsed = anchored ? now - requestedAt : 0;
+  if ((serverTime === undefined) !== (requestedAt === undefined)
+    || elapsed < 0 || lifetime > 900_000 || lifetime - elapsed < 60_000) {
     throw new Error("Siparişin geçerlilik süresi uygun değil. Henüz işlem gönderilmedi.");
   }
   return prepared;
 }
 
 export async function prepareSelfCheck(client: Client, payer: string): Promise<Prepared> {
-  return validatePrepared(toolValue(await client.callTool({
+  const requestedAt = Date.now();
+  const value = toolValue(await client.callTool({
     name: "prepare_base_payment", arguments: { amount: CHECK_AMOUNT, recipient: getAddress(payer) },
-  })), payer);
+  }));
+  return validatePrepared({ ...value, ...(value.serverTime !== undefined ? { requestedAt } : {}) }, payer);
 }
 
 export async function connectCheckWallet(provider: InjectedProvider): Promise<string> {

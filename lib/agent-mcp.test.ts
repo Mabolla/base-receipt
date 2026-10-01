@@ -33,10 +33,13 @@ describe("Base Receipt agent interface", () => {
       const listed = await client.listTools();
       expect(listed.tools.map(tool => tool.name)).toEqual(["prepare_base_payment", "issue_base_receipt"]);
       expect(listed.tools.every(tool => tool.annotations?.readOnlyHint === false)).toBe(true);
+      const startedAt = Date.now();
       const result = await client.callTool({ name: "prepare_base_payment", arguments: { amount: "0.01", recipient: "0x1111111111111111111111111111111111111111" } });
       expect(result.isError).not.toBe(true);
-      const value = result.structuredContent as { orderToken: string; submission: string; transaction: { to: string; data: `0x${string}`; chainId: number } };
+      const value = result.structuredContent as { orderToken: string; serverTime: number; submission: string; transaction: { to: string; data: `0x${string}`; chainId: number } };
       expect(value.orderToken).toBe("test-token");
+      expect(value.serverTime).toBeGreaterThanOrEqual(startedAt);
+      expect(value.serverTime).toBeLessThanOrEqual(Date.now());
       expect(value.submission).toBe("requires_caller_wallet");
       expect(value.transaction.chainId).toBe(8453);
       expect(value.transaction.to).toBe(BASE_USDC);
