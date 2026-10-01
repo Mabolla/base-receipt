@@ -71,7 +71,12 @@ export async function checkWallet(provider: InjectedProvider, payer: string) {
     throw new Error("Cüzdan Base Mainnet ağında olmalı. Henüz işlem gönderilmedi.");
   }
   const code = await provider.request({ method: "eth_getCode", params: [payer, "latest"] });
-  if (code !== "0x") throw new Error("Bu kontrol normal bir cüzdan hesabı gerektirir; akıllı hesap desteklenmiyor. İşlem gönderilmedi.");
+  // EIP-7702 delegated EOAs can still originate a direct transaction. Their
+  // exact 23-byte designation is not a deployed contract wallet. Never request
+  // a delegation change or a batched call to make this check work.
+  const canSendDirectly = code === "0x"
+    || (typeof code === "string" && /^0xef0100[0-9a-f]{40}$/i.test(code));
+  if (!canSendDirectly) throw new Error("Bağlanan hesap bu kontrol için desteklenmeyen bir sözleşme cüzdanı. Doğrudan işlem gönderen MetaMask hesabını seç. İşlem gönderilmedi.");
   const balance = await provider.request({ method: "eth_call", params: [{
     to: BASE_USDC, data: encodeFunctionData({ abi: erc20Abi, functionName: "balanceOf", args: [getAddress(payer)] }),
   }, "latest"] });

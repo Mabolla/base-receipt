@@ -72,8 +72,10 @@ export default function LiveCheckPage() {
   }
 
   async function connect() {
+    setMessage("Cüzdan bağlantısı ve Base ağı kontrol ediliyor…");
     const provider = getMetaMaskProvider();
     const account = await connectCheckWallet(provider);
+    setMessage("Cüzdan bağlandı. Hesap ve Base bakiyeleri kontrol ediliyor…");
     await checkWallet(provider, account);
     setPayer(account);
     setMessage("Cüzdan hazır. Gönderen ve alıcı aşağıdaki aynı adres. Ağ ücretini cüzdanda inceleyip onaylayacaksın.");
@@ -123,12 +125,12 @@ export default function LiveCheckPage() {
         <p className="networkWarning"><strong>Gerçek Base Mainnet işlemi.</strong> 0,01 USDC kendi cüzdan adresine gönderilir. USDC bakiyen değişmez; ağ ücreti ETH olarak harcanır. Cüzdanda en az 0,01 USDC ve ağ ücreti için ETH bulunmalı.</p>
         <p>Mevcut MetaMask hesabını kullan. Telefonda bu sayfayı MetaMask&apos;ın içinden açabilirsin.</p>
         <a className="explorerLink" href="https://link.metamask.io/dapp/base-receipt-six.vercel.app/agents/check">Mevcut MetaMask uygulamasında aç ↗</a>
-        <p>Bu kontrol normal cüzdan hesabıyla çalışır; akıllı hesap desteklenmez.</p>
+        <p>Mevcut MetaMask hesabından doğrudan gönderim yapılır. Sözleşme cüzdanları ve toplu işlemler desteklenmez.</p>
         <p>Ödeme onayından sonra makbuz görünene kadar sayfayı açık tut. Sipariş 15 dakika geçerlidir.</p>
         {payer && <dl><div><dt>Gönderen ve alıcı</dt><dd><code>{payer}</code></dd></div><div><dt>Tutar</dt><dd>0,01 USDC · Base Mainnet</dd></div></dl>}
         <p className="status" role="status" aria-live="polite">{message}</p>
         <div className="checkActions">
-          {!check && !payer && <button disabled={!ready || busy} onClick={() => void run(connect)}>1. Cüzdanı bağla</button>}
+          {!check && !payer && <button disabled={!ready || busy} onClick={() => void run(connect)}>{busy ? "Cüzdan kontrol ediliyor…" : "1. Cüzdanı bağla"}</button>}
           {!check && payer && <button disabled={!ready || busy} onClick={() => void run(pay)}>2. Kendi adresime 0,01 USDC gönder</button>}
           {check && !check.receipt && <>
             {!check.paymentId && <label>İşlem kimliği (cüzdanda gönderildiyse)<input placeholder="0x…" value={hashInput} onChange={event => setHashInput(event.target.value.trim())} /></label>}

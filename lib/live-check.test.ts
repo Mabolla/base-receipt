@@ -57,12 +57,34 @@ describe("wallet-approved MCP live check", () => {
   it.each([
     { eth_accounts: [other] }, { eth_chainId: "0x1" }, { eth_getCode: "0x1234" },
     { eth_call: "0x0" }, { eth_getBalance: "0x0" },
+    { eth_getCode: "0xef0100" },
+    { eth_getCode: `0xef0100${"11".repeat(19)}` },
+    { eth_getCode: `0xef0100${"11".repeat(21)}` },
+    { eth_getCode: `0xef0101${"11".repeat(20)}` },
+    { eth_getCode: `0xef0100${"gg".repeat(20)}` },
+    { eth_getCode: null },
+    { eth_getCode: { code: "0x" } },
   ])("does not request payment for an unsuitable wallet: %j", async overrides => {
     const provider = wallet(overrides);
     const persist = vi.fn();
     await expect(submitSelfCheck(provider, { payer, prepared: prepared() }, persist)).rejects.toThrow();
     expect(persist).not.toHaveBeenCalled();
     expect(provider.request.mock.calls.some(([args]) => args.method === "eth_sendTransaction")).toBe(false);
+  });
+
+  it.each([
+    `0xef0100${"ab".repeat(20)}`,
+    `0xEF0100${"AB".repeat(20)}`,
+  ])("lets a delegated EOA submit the same direct USDC transaction: %s", async code => {
+    const provider = wallet({ eth_getCode: code });
+    const value = { payer, prepared: prepared() };
+    const persist = vi.fn();
+    expect(await submitSelfCheck(provider, value, persist)).toBe(hash);
+    const transaction = { from: payer, to: BASE_USDC, value: "0x0", data: value.prepared.transaction.data };
+    expect(provider.request).toHaveBeenCalledWith({ method: "eth_estimateGas", params: [transaction] });
+    expect(provider.request).toHaveBeenCalledWith({ method: "eth_sendTransaction", params: [transaction] });
+    expect(persist).toHaveBeenCalledOnce();
+    expect(provider.request.mock.calls.some(([args]) => /authorization|wallet_sendCalls/i.test(args.method))).toBe(false);
   });
 
   it("rejects changed recipient, contract, amount, calldata and stale orders before wallet submission", () => {

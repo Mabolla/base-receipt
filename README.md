@@ -58,7 +58,7 @@ Example MCP tool arguments:
 {"paymentId":"0xYourTransactionHash","orderToken":"token-returned-by-prepare_base_payment"}
 ```
 
-Replace the placeholders with actual values. Preserve the returned attributed calldata. The current verifier supports direct EOA-to-USDC calls, not smart-account or batched calls. Preparing an order is not evidence of payment, and a receipt does not prove delivery of goods or services.
+Replace the placeholders with actual values. Preserve the returned attributed calldata. The current verifier supports direct EOA-to-USDC calls, including EIP-7702 delegated EOAs that originate the same direct transaction. Contract-wallet and batched calls remain unsupported. Preparing an order is not evidence of payment, and a receipt does not prove delivery of goods or services.
 
 No Base Receipt API key is required. The endpoint accepts POST, returns 405 for GET/DELETE, bounds request bodies to 64 KiB, and rejects foreign browser Origin headers. The server creates no long-lived MCP session. This release adds no transaction submission, paid canary or synthetic activity.
 
@@ -73,6 +73,8 @@ Maintainers can check a running deployment with `node scripts/check-agent.mjs <a
 The original order is saved in local browser storage before wallet approval, and the transaction hash before confirmation polling. Reloading resumes receipt verification without another payment; an interrupted wallet response can be recovered by entering its transaction hash. Explicit wallet rejection clears the unpaid attempt. Verification remains limited by the existing 15-minute order lifetime. There is no automatic repeat payment. Receipt results can be copied without exporting the order token or wallet credentials. Keep the page open until the receipt is issued.
 
 The page is a functionality check through the agent interface, not an autonomous agent or proof of external adoption. A successful fresh mainnet MCP receipt is **not yet recorded** here; do not mark that test complete until it has actually succeeded.
+
+The wallet preflight accepts empty account code or the exact 23-byte EIP-7702 delegation designation (`0xef0100` followed by a 20-byte address). Other account code is rejected. This check does not change the wallet's delegation or request a batched transaction; it uses the existing account to originate a direct attributed USDC call.
 
 ## Base Agent Meter on the same host
 
