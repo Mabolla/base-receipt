@@ -13,6 +13,7 @@
   "dependencies": {
     "@base-org/account": "latest",
     "@modelcontextprotocol/sdk": "1.31.0",
+    "base-agent-meter": "github:Mabolla/base-agent-meter#d01602ab1673da5abdef82c49a857638767198c0",
     "next": "latest",
     "ox": "1.7.4",
     "postgres": "latest",
