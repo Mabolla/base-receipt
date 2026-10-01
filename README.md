@@ -8,7 +8,7 @@ Base Receipt creates a short-lived signed USDC payment request, opens MetaMask (
 
 ## Mainnet proof
 
-The full production flow and ERC-8021 attribution have been exercised with a real **0.01 USDC** Base Mainnet payment.
+The original browser payment flow and ERC-8021 attribution have been exercised with a real **0.01 USDC** Base Mainnet payment. This historical transaction does not prove a fresh end-to-end MCP payment and receipt flow.
 
 - Direct transaction: https://basescan.org/tx/0xa7c0d15e190b7ab099c03013b14f07c6a58a7c15c8c1e7a8132bb7512c9e881d
 - Result: successful Base Mainnet USDC transfer
@@ -66,6 +66,14 @@ The MCP transport uses the [official TypeScript SDK](https://ts.sdk.modelcontext
 
 Maintainers can check a running deployment with `node scripts/check-agent.mjs <application-origin>`. This performs discovery, prepares one unsigned 0.01 USDC request, validates its calldata, and confirms invalid signatures are rejected. It never submits a payment or stores a receipt, and does not print the order token.
 
+### Wallet-approved live MCP check
+
+`/agents/check` is a Turkish mobile-friendly MCP client for one explicit **0.01 USDC self-transfer** on Base Mainnet. Connect an existing MetaMask account, review the same sender/recipient address, then approve the transfer and gas fee in the wallet. The USDC stays in the same account; ETH gas is spent. The page uses the official MCP SDK for both `prepare_base_payment` and `issue_base_receipt`, retaining the exact signed order token throughout. It validates the returned chain, token contract, amount, recipient and full attributed calldata before requesting a direct transaction. It also checks account type, balances and gas simulation before submission.
+
+The original order is saved in local browser storage before wallet approval, and the transaction hash before confirmation polling. Reloading resumes receipt verification without another payment; an interrupted wallet response can be recovered by entering its transaction hash. Explicit wallet rejection clears the unpaid attempt. Verification remains limited by the existing 15-minute order lifetime. There is no automatic repeat payment. Receipt results can be copied without exporting the order token or wallet credentials. Keep the page open until the receipt is issued.
+
+The page is a functionality check through the agent interface, not an autonomous agent or proof of external adoption. A successful fresh mainnet MCP receipt is **not yet recorded** here; do not mark that test complete until it has actually succeeded.
+
 ## Base Agent Meter on the same host
 
 The separate Meter product uses `/meter` for its unpaid endpoint checker, `/meter/mcp` for its two read-only tools, and `/api/meter` for capabilities and the exact upstream source revision.
@@ -80,7 +88,7 @@ Meter's page publishes its own Base application ID instead of inheriting Receipt
 | Description | Read-only x402 API checks and Base USDC payment verification. |
 | Source | `https://github.com/Mabolla/base-agent-meter` |
 
-The Base Dashboard listing update from the old Railway URL remains **pending**. Publishing page metadata does not update the Dashboard registration or confirm domain verification for the new URL. Keep the existing app ID and Builder Code when updating the listing.
+The existing Meter project and Builder Code were confirmed in Base Dashboard. No editable website field or required URL-update step has been established in the current panel. Page metadata does not establish Dashboard discovery visibility, current usage counters or new-domain verification; these remain unverified rather than confirmed registration faults. Preserve the existing app ID and Builder Code.
 
 | Endpoint | Product | Tools |
 | --- | --- | --- |

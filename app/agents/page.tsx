@@ -14,6 +14,7 @@ export default function AgentsPage() {
         <code className="endpoint">https://base-receipt-six.vercel.app/mcp</code>
         <p>The endpoint accepts MCP requests over HTTP POST. No Base Receipt API key is required.</p>
         <Link className="explorerLink" href="/api/agent">View machine-readable capabilities ↗</Link>
+        <p><Link className="explorerLink" href="/agents/check">Run a live MCP self-transfer check ↗</Link></p>
       </section>
       <section className="card agentDocs">
         <h2>Two tools, one receipt flow</h2>
