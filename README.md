@@ -8,6 +8,8 @@ Base Receipt creates a short-lived signed USDC payment request, opens MetaMask (
 
 ## Mainnet proof
 
+### Original browser payment
+
 The original browser payment flow and ERC-8021 attribution have been exercised with a real **0.01 USDC** Base Mainnet payment. This historical transaction does not prove a fresh end-to-end MCP payment and receipt flow.
 
 - Direct transaction: https://basescan.org/tx/0xa7c0d15e190b7ab099c03013b14f07c6a58a7c15c8c1e7a8132bb7512c9e881d
@@ -15,6 +17,21 @@ The original browser payment flow and ERC-8021 attribution have been exercised w
 - ERC-8021 result: top-level transaction calldata ends with Builder Code `bc_87fjmj1l`
 - Application result: `Verified on Base. Receipt issued.`
 - Durable receipt claim: persisted in PostgreSQL
+
+### Wallet-approved MCP payment — 2026-10-01
+
+The `/agents/check` MCP client completed a fresh **0.01 USDC self-transfer**: `prepare_base_payment` returned the signed order and attributed calldata, the user approved a direct transaction in their existing wallet, and `issue_base_receipt` returned a completed receipt for that same order. The wallet owner supplied the successful screen and expanded receipt result. The new transaction was independently checked on BaseScan, and its calldata was decoded with `viem` and `ox/erc8021`.
+
+| Evidence | Result |
+| --- | --- |
+| Transaction | [0xae5b6ab118a58aed27c89b05ef9af7e75406487d4d42496284e6767f6cf14483](https://basescan.org/tx/0xae5b6ab118a58aed27c89b05ef9af7e75406487d4d42496284e6767f6cf14483) |
+| Block and timestamp | `52047238` — `2026-10-01T19:43:43Z` |
+| Settlement | Successful direct call to Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Transfer event | `10000` USDC units (`0.01 USDC`); sender and recipient both `0x94705A9d675daa924F9190Eca4c05ED6B12d5345` |
+| ERC-8021 attribution | Calldata decoded to Builder Code `bc_87fjmj1l` |
+| MCP receipt | Successful live check and receipt status `completed` in the supplied result |
+
+This records one wallet-approved end-to-end functionality check through both MCP tools. It does not establish autonomous-agent operation, external users, commercial demand or increased builder visibility.
 
 ## Why this exists
 
@@ -72,7 +89,7 @@ Maintainers can check a running deployment with `node scripts/check-agent.mjs <a
 
 The original order is saved in local browser storage before wallet approval, and the transaction hash before confirmation polling. Reloading resumes receipt verification without another payment; an interrupted wallet response can be recovered by entering its transaction hash. Explicit wallet rejection clears the unpaid attempt. Verification remains limited by the existing 15-minute order lifetime. There is no automatic repeat payment. Receipt results can be copied without exporting the order token or wallet credentials. Keep the page open until the receipt is issued.
 
-The page is a functionality check through the agent interface, not an autonomous agent or proof of external adoption. A successful fresh mainnet MCP receipt is **not yet recorded** here; do not mark that test complete until it has actually succeeded.
+The page is a functionality check through the agent interface, not an autonomous agent or proof of external adoption. A successful fresh mainnet MCP payment and receipt was recorded on **2026-10-01**; see the wallet-approved MCP proof above.
 
 The wallet preflight accepts empty account code or the exact 23-byte EIP-7702 delegation designation (`0xef0100` followed by a 20-byte address). Other account code is rejected. This check does not change the wallet's delegation or request a batched transaction; it uses the existing account to originate a direct attributed USDC call.
 
@@ -155,6 +172,7 @@ Base Receipt is registered and domain-verified in Base Dashboard with Builder Co
 - Server-side settlement verification: **verified in production**
 - Atomic PostgreSQL replay protection: **verified with durable persistence**
 - Mainnet receipt + BaseScan explorer link: **verified in production**
+- Fresh MCP preparation → user-approved Mainnet payment → same-order MCP receipt: **verified with one live self-transfer**
 - Live deployment: **online**
 - Base Dashboard registration and domain verification: **completed**
 - Builder Code: `bc_87fjmj1l`
