@@ -33,6 +33,7 @@ export default function AgentsPage() {
         <p>Preparing an order does not establish payment or product adoption. A receipt proves the checked transfer, not delivery of goods or services.</p>
         <Link className="explorerLink" href="/">Open the wallet payment page</Link>
         <p><a className="explorerLink" href="https://github.com/Mabolla/base-receipt">Source and integration documentation ↗</a></p>
+        <p><Link className="explorerLink" href="/meter">Base Agent Meter: inspect x402 APIs and existing settlements ↗</Link></p>
       </section>
     </main>
   );

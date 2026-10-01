@@ -66,6 +66,23 @@ The MCP transport uses the [official TypeScript SDK](https://ts.sdk.modelcontext
 
 Maintainers can check a running deployment with `node scripts/check-agent.mjs <application-origin>`. This performs discovery, prepares one unsigned 0.01 USDC request, validates its calldata, and confirms invalid signatures are rejected. It never submits a payment or stores a receipt, and does not print the order token.
 
+## Base Agent Meter on the same host
+
+The separate Meter product uses `/meter` for its unpaid endpoint checker, `/meter/mcp` for its two read-only tools, and `/api/meter` for capabilities and the exact upstream source revision.
+
+| Endpoint | Product | Tools |
+| --- | --- | --- |
+| `/mcp` | Base Receipt | `prepare_base_payment`, `issue_base_receipt` |
+| `/meter/mcp` | Base Agent Meter | `check_x402_endpoint`, `verify_base_settlement` |
+
+Meter's code comes from a commit-pinned Git dependency on [Mabolla/base-agent-meter](https://github.com/Mabolla/base-agent-meter). No checker code is copied into this repository. The Node route retains Meter's public-IP validation and pinned DNS connection, 128 KiB response cap and redirect rejection. Importing Meter does not start another HTTP server or enable its paid fixture.
+
+Meter requests have a best-effort budget of 30 per minute and four concurrent requests **per runtime instance**, including MCP negotiation. These limits are shared by callers to that instance and are not a distributed quota. Receipt routes use their existing handlers independently. Settlement checks use `BASE_RPC_URL` when configured, otherwise the public Base RPC, whose availability and limits can affect verification.
+
+The UI and hosted MCP checker support unpaid GET checks. Meter's standalone CLI/API still support explicit POST checks and the separately gated paid canary; those workflows are not newly hosted here. The old Railway hostname and its paid fixture remain unavailable. Read-only Meter calls do not create onchain activity or receipt claims.
+
+`node scripts/check-meter.mjs <application-origin>` checks the hosted source revision, SDK discovery and invalid-input rejection. Adding `--network` also checks a real ordinary endpoint is correctly rejected as non-x402 and re-verifies the historical Base Receipt transaction listed below. It never creates a payment or a receipt claim.
+
 ## Replay protection
 
 For local development, claims are kept in process memory.
