@@ -70,6 +70,18 @@ Maintainers can check a running deployment with `node scripts/check-agent.mjs <a
 
 The separate Meter product uses `/meter` for its unpaid endpoint checker, `/meter/mcp` for its two read-only tools, and `/api/meter` for capabilities and the exact upstream source revision.
 
+Meter's page publishes its own Base application ID instead of inheriting Receipt's identity. Its canonical URL, description and social metadata also identify Meter.
+
+| Meter registration field | Value |
+| --- | --- |
+| Existing Base app ID | `6a81d256b92232d481b384bc` |
+| Existing Builder Code | `bc_h2oqnbbh` |
+| Current website | `https://base-receipt-six.vercel.app/meter` |
+| Description | Read-only x402 API checks and Base USDC payment verification. |
+| Source | `https://github.com/Mabolla/base-agent-meter` |
+
+The Base Dashboard listing update from the old Railway URL remains **pending**. Publishing page metadata does not update the Dashboard registration or confirm domain verification for the new URL. Keep the existing app ID and Builder Code when updating the listing.
+
 | Endpoint | Product | Tools |
 | --- | --- | --- |
 | `/mcp` | Base Receipt | `prepare_base_payment`, `issue_base_receipt` |
