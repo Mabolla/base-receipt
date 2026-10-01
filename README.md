@@ -79,6 +79,8 @@ Meter's code comes from a commit-pinned Git dependency on [Mabolla/base-agent-me
 
 Meter requests have a best-effort budget of 30 per minute and four concurrent requests **per runtime instance**, including MCP negotiation. These limits are shared by callers to that instance and are not a distributed quota. Receipt routes use their existing handlers independently. Settlement checks use `BASE_RPC_URL` when configured, otherwise the public Base RPC, whose availability and limits can affect verification.
 
+The pinned verifier recognizes canonical ERC-8021 schema-0 code lists as well as x402 schema-2 application codes. It reports the decoded format, does not substitute service codes for an application code, and does not verify custom-registry identity from a matching string alone.
+
 The UI and hosted MCP checker support unpaid GET checks. Meter's standalone CLI/API still support explicit POST checks and the separately gated paid canary; those workflows are not newly hosted here. The old Railway hostname and its paid fixture remain unavailable. Read-only Meter calls do not create onchain activity or receipt claims.
 
 `node scripts/check-meter.mjs <application-origin>` checks the hosted source revision, SDK discovery and invalid-input rejection. Adding `--network` also checks a real ordinary endpoint is correctly rejected as non-x402 and re-verifies the historical Base Receipt transaction listed below. It never creates a payment or a receipt claim.
